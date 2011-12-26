@@ -34,7 +34,8 @@ int CCamera::SendCommand(int camera,int task)
 	WORD wversion = WINSOCK_VERSION;
 	SOCKADDR_IN saddr;
 	char szBuf[20000];                     //受信データを格納
-	int nRcv;                              //受信データのサイズ
+	char totalBuf[90000];	
+	int nRcv, nTotalRcv;                              //受信データのサイズ
 	char szServer[3][20]={"133.19.22.237",
 		                  "133.19.22.240",
 						  "133.19.22.239"}; //Network Camera1～3のIPアドレス
@@ -69,9 +70,9 @@ int CCamera::SendCommand(int camera,int task)
 	}
 
 	//DNS名前解決（サーバーのIPアドレスを割り出す）
-	lpHost = gethostbyname(szServer[camera-1]);
+	lpHost = gethostbyname(szServer[2]);
 	if(lpHost == NULL){
-		addr = inet_addr(szServer[camera-1]);
+		addr = inet_addr(szServer[2]);
 		lpHost = gethostbyaddr((char *)&addr,4,AF_INET);
 	}
 	if(lpHost == NULL){
@@ -153,7 +154,20 @@ int CCamera::SendCommand(int camera,int task)
 
 	//動画像取得
 	if(task==5){
-		for( ; ( nRcv = recv( s, szBuf, sizeof(szBuf), 0)) > 0 ; ) {
+		//for( ; ( nRcv = recv( s, szBuf, sizeof(szBuf), 0)) > 0 ; ) {
+		while (1){
+			nTotalRcv = 0;
+			while ((nRcv = recv(s, szBuf, sizeof(szBuf), 0)) > 0)
+			{
+				if ( nTotalRcv + nRcv > 90000)
+					break;
+				memcpy(totalBuf + nTotalRcv, szBuf, nRcv);
+				nTotalRcv += nRcv;
+				if (szBuf[nRcv - 1] == '\n' && szBuf[nRcv - 2] == '\r' &&
+						szBuf[nRcv - 3] == '\n' && szBuf[nRcv - 4] == '\r')
+						break;
+				
+			}
 
 			/*******************************/
 			/* JPEGデータをRGBデータに変換 */
@@ -161,7 +175,7 @@ int CCamera::SendCommand(int camera,int task)
 
 			CJpegDecoder jd;
 			//JPEGデータの設定
-			int r = jd.SetJpegData(szBuf,nRcv);
+			int r = jd.SetJpegData(totalBuf, nTotalRcv);
 			//エラー?
 			if(r<0)	break;
 
