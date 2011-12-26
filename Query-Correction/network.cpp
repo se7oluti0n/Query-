@@ -173,19 +173,23 @@ int CCamera::SendCommand(int camera,int task)
 			/* JPEGデータをRGBデータに変換 */
 			/*******************************/
 
-			CJpegDecoder jd;
-			//JPEGデータの設定
-			int r = jd.SetJpegData(totalBuf, nTotalRcv);
-			//エラー?
-			if(r<0)	break;
+			//CJpegDecoder jd;
+			////JPEGデータの設定
+			//int r = jd.SetJpegData(totalBuf, nTotalRcv);
+			////エラー?
+			//if(r<0)	break;
 
-			//JPEGの復号
-			r = jd.Decode();
-			//エラー？
-			if(r<0)	break;
+			////JPEGの復号
+			//r = jd.Decode();
+			////エラー？
+			//if(r<0)	break;
 
-			//RGBデータの取得(幅と高さも)
-			jd.GetRGBData(&nR,&nG,&nB,Width,Height);
+			////RGBデータの取得(幅と高さも)
+			//jd.GetRGBData(&nR,&nG,&nB,Width,Height);
+
+
+			cv::Mat decodedImg = cv::imdecode(cv::Mat(1, nTotalRcv, CV_8UC1, totalBuf), 1);
+
 
 			//画像データ(RGB)の領域を確保(1番最初とカメラの向きを変えるとき)
 			input.init();
@@ -194,17 +198,17 @@ int CCamera::SendCommand(int camera,int task)
 			if(camera!=2){
 				for(int j=0;j<Height;j++){
 					for(int i=0;i<Width;i++){
-						input.B(i,Height-1-j) = nB[j*Width+i];
-						input.G(i,Height-1-j) = nG[j*Width+i];
-						input.R(i,Height-1-j) = nR[j*Width+i];
+						input.B(i,Height-1-j) = decodedImg.at<uchar> (j, 3*i); //nB[j*Width+i];
+						input.G(i,Height-1-j) = decodedImg.at<uchar> (j, 3*i + 1);//nG[j*Width+i];
+						input.R(i,Height-1-j) = decodedImg.at<uchar> (j, 3*i + 2);//nR[j*Width+i];
 					}
 				}
 			}else{
 				for(int j=0;j<Height;j++){
 					for(int i=0;i<Width;i++){
-						input.B(Width-1-i,j) = nB[j*Width+i];
-						input.G(Width-1-i,j) = nG[j*Width+i];
-						input.R(Width-1-i,j) = nR[j*Width+i];
+						input.B(Width-1-i,j) = decodedImg.at<uchar> (j, 3*i);//nB[j*Width+i];
+						input.G(Width-1-i,j) = decodedImg.at<uchar> (j, 3*i + 1);//nG[j*Width+i];
+						input.R(Width-1-i,j) = decodedImg.at<uchar> (j, 3*i + 2);//nR[j*Width+i];
 					}
 				}
 			}
