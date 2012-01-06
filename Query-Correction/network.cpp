@@ -48,6 +48,7 @@ int CCamera::SendCommand(int camera,int task)
 	//画像の幅の初期化(とりあえず、高さ・幅一定)
 	Width = 320;
 	Height = 240;
+	imageKinect();
 
 	//WinSockの初期化
 	if(WSAStartup(wversion,&wsaData)){
@@ -70,9 +71,9 @@ int CCamera::SendCommand(int camera,int task)
 	}
 
 	//DNS名前解決（サーバーのIPアドレスを割り出す）
-	lpHost = gethostbyname(szServer[2]);
+	lpHost = gethostbyname(szServer[camera - 1]);
 	if(lpHost == NULL){
-		addr = inet_addr(szServer[2]);
+		addr = inet_addr(szServer[camera - 1]);
 		lpHost = gethostbyaddr((char *)&addr,4,AF_INET);
 	}
 	if(lpHost == NULL){
@@ -189,6 +190,21 @@ int CCamera::SendCommand(int camera,int task)
 
 
 			cv::Mat decodedImg = cv::imdecode(cv::Mat(1, nTotalRcv, CV_8UC1, totalBuf), 1);
+			recvFinger();
+			if (isPointing == 1) {
+				cv::circle(decodedImg, cv::Point(handx, handy), 5, cv::Scalar(0, 255, 0), 2);
+				cv::rectangle(decodedImg, cv::Point(minx, miny), cv::Point(maxx, maxy), cv::Scalar(255, 0, 0), 2);
+			}
+			else
+				if (isPointing == 2)
+				{
+					cv::circle(decodedImg, cv::Point(handx, handy), 5, cv::Scalar(0, 255, 0), 2);
+				//	cv::rectangle(decodedImg, cv::Point(minx, miny), cv::Point(maxx, maxy), cv::Scalar(255, 0, 0), 2);
+					cv::line(decodedImg, cv::Point(handx, handy), cv::Point(minx, miny), cv::Scalar(0, 0, 255), 2 );
+				}
+				else
+					
+				cv::circle(decodedImg, cv::Point(handx, handy), 5, cv::Scalar(0, 0, 255), 2);
 
 
 			//画像データ(RGB)の領域を確保(1番最初とカメラの向きを変えるとき)
@@ -243,7 +259,10 @@ int CCamera::SendCommand(int camera,int task)
 		}//for
 	}//if
 
-	closesocket(s);  //ソケットクローズ
+	closesocket(s);  
+	char quitSignal[] = "Quit";
+	send(sock_for_finger, quitSignal, strlen(quitSignal), 0 );
+	closesocket(sock_for_finger);//ソケットクローズ
 	WSACleanup();    //WinSockをクリーンアップ
 	//getch();
 
@@ -305,16 +324,8 @@ int CCamera::OffLine()
 
 	return 0;
 }
-
-
-bool CCamera::get_finger(int xmin[],int ymin[],int xmax[],int ymax[])
+void CCamera::recvFinger()
 {
-	//if(Get_Area(xmin,ymin,xmax,ymax)==true){   //オンライン
-	////if(Input.Get_Area(xmin,ymin,xmax,ymax)==true){ //オフライン
-	//	return true;
-	//}
-	//return false
-	
 	char message_for_finger[] = "Get Finger";
 	char recvBuff[256];
 	int nRcv;
@@ -326,26 +337,39 @@ bool CCamera::get_finger(int xmin[],int ymin[],int xmax[],int ymax[])
 
 	if (nRcv > 0){
 		memcpy(&isPointing, recvBuff,					sizeof(int));
-		memcpy(&minx,		recvBuff + sizeof(int) ,	sizeof(int));
-		memcpy(&miny,		recvBuff + sizeof(int) * 2, sizeof(int));
-		memcpy(&maxx,		recvBuff + sizeof(int) * 3, sizeof(int));
-		memcpy(&maxy,		recvBuff + sizeof(int) * 4, sizeof(int));
+		memcpy(&handx,		recvBuff + sizeof(int) ,	sizeof(int));
+		memcpy(&handy,		recvBuff + sizeof(int) * 2, sizeof(int));
+		memcpy(&minx,		recvBuff + sizeof(int) * 3,	sizeof(int));
+		memcpy(&miny,		recvBuff + sizeof(int) * 4, sizeof(int));
+		memcpy(&maxx,		recvBuff + sizeof(int) * 5, sizeof(int));
+		memcpy(&maxy,		recvBuff + sizeof(int) * 6, sizeof(int));
 	}
 
+}
+
+bool CCamera::get_finger(int xmin[],int ymin[],int xmax[],int ymax[])
+{
+	//if(Get_Area(xmin,ymin,xmax,ymax)==true){   //オンライン
+	////if(Input.Get_Area(xmin,ymin,xmax,ymax)==true){ //オフライン
+	//	return true;
+	//}
+	//return false
+	
+	
 
 	if (isPointing == 1) {
-		*xmax = maxx / 2;
-		*xmin = minx / 2;
-		*ymin = 240 - maxy / 2;
-		*ymax = 240 - miny / 2;
+		*xmax = maxx;
+		*xmin = minx;
+		*ymin = 240 - maxy;
+		*ymax = 240 - miny;
 		return true;
 	}
 	else
 		return false;
 }
-int CCamera::imageKinect(CCamera * cp)
+int CCamera::imageKinect()
 {
-	SOCKET s;
+	//SOCKET s;
 	WSADATA wsaData;
 	WORD wversion = WINSOCK_VERSION;
 	SOCKADDR_IN saddr;
@@ -372,10 +396,10 @@ int CCamera::imageKinect(CCamera * cp)
 	}
 
 	//ソケットオープン
-	s = socket(AF_INET,SOCK_STREAM,0);
+	//s = socket(AF_INET,SOCK_STREAM,0);
 	sock_for_finger = socket(AF_INET, SOCK_STREAM, 0);
 
-	if( s < 0 || sock_for_finger < 0){
+	if( sock_for_finger < 0){
 		WSACleanup();
 		_getch();
 		return -2;
@@ -389,7 +413,7 @@ int CCamera::imageKinect(CCamera * cp)
 		lpHost = gethostbyaddr((char *)&addr,4,AF_INET);
 	}
 	if(lpHost == NULL){
-		closesocket(s);
+		closesocket(sock_for_finger);
 		WSACleanup();
 		_getch();
 		return -3;
@@ -399,17 +423,17 @@ int CCamera::imageKinect(CCamera * cp)
 	memset(&saddr,0,sizeof(SOCKADDR_IN));
 	saddr.sin_family = AF_INET; //アドレスファミリーを指定
 	memcpy( &saddr.sin_addr, lpHost->h_addr, lpHost->h_length);//接続先IPアドレス指定（ここでは名前から)
-	saddr.sin_port = htons(5000); //接続先ポート番号指定(ここではポート番号80で固定)
+	saddr.sin_port = htons(5001); //接続先ポート番号指定(ここではポート番号80で固定)
 	//接続
-	if(connect(s,(SOCKADDR *)&saddr,sizeof(saddr))<0){
-		closesocket(s);
-		WSACleanup();
-		return -4;
-	}
+	//if(connect(s,(SOCKADDR *)&saddr,sizeof(saddr))<0){
+	//	closesocket(s);
+	//	WSACleanup();
+	//	return -4;
+	//}
 
-	cp->isPointing = 0;
+	isPointing = 0;
 	// Connect to Pointing server
-	saddr.sin_port = htons(5001);
+	//saddr.sin_port = htons(5001);
 
 	if (connect(sock_for_finger, (SOCKADDR *) &saddr, sizeof(saddr)) < 0){
 		closesocket(sock_for_finger);
@@ -424,73 +448,73 @@ int CCamera::imageKinect(CCamera * cp)
 	//データを受信(1回目は画像データではない)
 	//nRcv = recv(s,szBuf,sizeof(szBuf),0);
 
-	char totalBuff[930000];
-	int nTotalsize ;
+//	char totalBuff[930000];
+//	int nTotalsize ;
+//
+//	int sss = 640 * 480 * 3;
+//	int ivar ;//= (int*) malloc(sizeof(int));
+//	double dvar; //= (double*) malloc(sizeof(double));
+//	uchar* image_data= (uchar*) malloc(sizeof(uchar) * sss);
+////	outt = cvCreateImage(cvSize(320, 240), 8, 3);
+//	//namedWindow("Image");
+//
+//	//動画像取得
+//
+//	while(1){
+//		nTotalsize = 0;
+//
+//		while ((nRcv=recv(s,szBuf,sizeof(szBuf),0))	>	0)
+//		{
+//			// cout << "Recieved " << bytes_recieved << " bytes" << endl;
+//			if ( nTotalsize + nRcv > 930000 )
+//				break;
+//			memcpy( totalBuff + nTotalsize, szBuf, nRcv);
+//			nTotalsize +=nRcv;
+//			if ( totalBuff[nTotalsize - 1] == 'm' &&  totalBuff[nTotalsize - 2] == 'a' &&
+//				totalBuff[nTotalsize - 3] == 'n' &&  totalBuff[nTotalsize - 4] == 'h')
+//				break;
+//
+//
+//
+//		}
+//
+//		if (nTotalsize != 921616) continue; 
+//		//サイズをセット
+//
+//		memcpy(image_data, totalBuff, sss);
+//		memcpy(&ivar, totalBuff + sss, sizeof(int));
+//		memcpy(&dvar, totalBuff + sss + sizeof(int), sizeof(double));
+//
+//		cv::Mat img(cv::Size(640, 480), 16, image_data);
+//		cv::resize(img,img, cv::Size(320, 240));
+//		if (cp->isPointing)
+//			cv::rectangle(img, cv::Point(cp->minx / 2, cp->miny / 2), cv::Point(cp->maxx / 2, cp->maxy / 2), cv::Scalar(255, 0, 0));
+//		//memcpy(outt->imageData, img.data, 320 * 240 * 3 );
+//		cv::imshow("Movie", img);
+//		//cvShowImage("Image", outt);
+//
+//		cout << "var i = " << ivar << " var double = " << dvar << endl;
+//		if (cv::waitKey(30) == 'q')
+//		{
+//			//closesocket(s);
+//			break;
+//		}
+//
+//		//		::ReleaseDC(hwndStill,hdcStill);
+//	}//if
+//
+//	//解放
+//	//release_back();
+//	char quitSignal[] = "Quit";
+//	send(s,quitSignal, strlen(quitSignal), 0 );
+//	while (send(sock_for_finger, quitSignal, strlen(quitSignal), 0) < 0)
+//		cv::waitKey(10);
+//	closesocket(s);  //ソケットクローズ
+//	closesocket(sock_for_finger);
+	//WSACleanup();    //WinSockをクリーンアップ
+	//getch();
 
-	int sss = 640 * 480 * 3;
-	int ivar ;//= (int*) malloc(sizeof(int));
-	double dvar; //= (double*) malloc(sizeof(double));
-	uchar* image_data= (uchar*) malloc(sizeof(uchar) * sss);
-//	outt = cvCreateImage(cvSize(320, 240), 8, 3);
-	//namedWindow("Image");
-
-	//動画像取得
-
-	while(1){
-		nTotalsize = 0;
-
-		while ((nRcv=recv(s,szBuf,sizeof(szBuf),0))	>	0)
-		{
-			// cout << "Recieved " << bytes_recieved << " bytes" << endl;
-			if ( nTotalsize + nRcv > 930000 )
-				break;
-			memcpy( totalBuff + nTotalsize, szBuf, nRcv);
-			nTotalsize +=nRcv;
-			if ( totalBuff[nTotalsize - 1] == 'm' &&  totalBuff[nTotalsize - 2] == 'a' &&
-				totalBuff[nTotalsize - 3] == 'n' &&  totalBuff[nTotalsize - 4] == 'h')
-				break;
-
-
-
-		}
-
-		if (nTotalsize != 921616) continue; 
-		//サイズをセット
-
-		memcpy(image_data, totalBuff, sss);
-		memcpy(&ivar, totalBuff + sss, sizeof(int));
-		memcpy(&dvar, totalBuff + sss + sizeof(int), sizeof(double));
-
-		cv::Mat img(cv::Size(640, 480), 16, image_data);
-		cv::resize(img,img, cv::Size(320, 240));
-		if (cp->isPointing)
-			cv::rectangle(img, cv::Point(cp->minx / 2, cp->miny / 2), cv::Point(cp->maxx / 2, cp->maxy / 2), cv::Scalar(255, 0, 0));
-		//memcpy(outt->imageData, img.data, 320 * 240 * 3 );
-		cv::imshow("Movie", img);
-		//cvShowImage("Image", outt);
-
-		cout << "var i = " << ivar << " var double = " << dvar << endl;
-		if (cv::waitKey(30) == 'q')
-		{
-			//closesocket(s);
-			break;
-		}
-
-		//		::ReleaseDC(hwndStill,hdcStill);
-	}//if
-
-	//解放
-	//release_back();
-	char quitSignal[] = "Quit";
-	send(s,quitSignal, strlen(quitSignal), 0 );
-	while (send(sock_for_finger, quitSignal, strlen(quitSignal), 0) < 0)
-		cv::waitKey(10);
-	closesocket(s);  //ソケットクローズ
-	closesocket(sock_for_finger);
-	WSACleanup();    //WinSockをクリーンアップ
-	getch();
-
-	stop_flag=0;     //動画像停止フラグの初期化
+	//stop_flag=0;     //動画像停止フラグの初期化
 
 	return 0;
 }

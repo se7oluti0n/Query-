@@ -26,6 +26,7 @@ private:
 
 	//cv::Mat outt;
 	int isPointing, minx, miny, maxx, maxy;
+	int handx, handy;
 	SOCKET sock_for_finger; // Socket for detect pointing
 
 public:
@@ -42,6 +43,7 @@ public:
 
 	void set_pParent(CQueryByMouseDlg* p){pParent = p;} //親ウィンドウへのポインタ設定
 	//bool get_finger(int xmin[],int ymin[],int xmax[],int ymax[]); //指さしている領域を返す
-	int imageKinect(CCamera * cp);
+	int imageKinect();
+	void recvFinger();
 
 };

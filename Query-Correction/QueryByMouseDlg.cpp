@@ -115,7 +115,7 @@ static UINT AFX_CDECL ThreadProcCalc(LPVOID pParam)
 static UINT AFX_CDECL ThreadOffLine(LPVOID pParam)
 {
 	cp=(CCamera*)pParam;
-	cp->imageKinect(cp);
+	cp->imageKinect();
 	//cp->OffLine();
 	return 0;
 }
