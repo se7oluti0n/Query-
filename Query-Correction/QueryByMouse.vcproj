@@ -45,7 +45,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;$(SolutionDir)\include\opencv&quot;"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\include&quot;;&quot;$(SolutionDir)\include\opencv&quot;;&quot;$(SolutionDir)\include\A_Talk&quot;"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -69,7 +69,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="opencv_core231d.lib opencv_highgui231d.lib opencv_imgproc231d.lib"
+				AdditionalDependencies="opencv_core231d.lib opencv_highgui231d.lib opencv_imgproc231d.lib AquesTalkDa.lib libjulius.lib libsent.lib ws2_32.lib zlib.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(SolutionDir)\lib"
 				GenerateDebugInformation="true"
@@ -227,6 +227,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Julius.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Multi_Disp.cpp"
 				>
 			</File>
@@ -338,6 +342,10 @@
 			</File>
 			<File
 				RelativePath=".\JpegReaderDoc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Julius.h"
 				>
 			</File>
 			<File

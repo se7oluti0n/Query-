@@ -33,6 +33,8 @@
 #define IDC_TIME2                       1013
 #define IDC_NUM                         1013
 #define IDC_COMBO1                      1014
+#define IDC_EDIT_USER2                  1016
+#define IDC_EDIT_CHECK                  1016
 
 // Next default values for new objects
 // 

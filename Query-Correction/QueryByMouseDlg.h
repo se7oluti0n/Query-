@@ -15,6 +15,7 @@
 
 #include "Multi_Disp.h"
 #include "afxwin.h"
+#include <AquesTalkDa.h>
 
 //認識結果
 typedef struct _Sentence{
@@ -83,8 +84,12 @@ public:
 	void DispSystemmsg(const string &msg);//「システムの発話」にメッセージを表示する関数
 	void DispUsermsg(const string &msg);//「ユーザの発話」にメッセージを表示する関数
 	//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
+	// Julius関係+++++++++++++++++++++++
+	int initJulius();
+	void CleanupJulius();
+	//void getSentence();
+	void GetNbestText();
+	bool Set_grammar(char *in);
 	//対話制御関連+++++++++++++++++++++++++++++++++++++++++++++++++++
 	void SetTask(){taskflag=GessTask();}
 	           //0：未検出、1：放置物、2：紛失物
@@ -121,7 +126,8 @@ public:
 // 実装
 protected:
 	HICON m_hIcon;
-
+	// 認識イベントハンドラ
+	afx_msg LRESULT OnRecoEvent(WPARAM wParam, LPARAM lParam);	
 	// 生成された、メッセージ割り当て関数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);

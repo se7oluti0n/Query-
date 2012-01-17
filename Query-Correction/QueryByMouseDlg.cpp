@@ -9,12 +9,13 @@
 #include "DispUndetection.h"
 #include "FileOperator.h"
 #include "cv.h"
-
+#include "Julius.h"
+#include "process.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
-
+cJulius julius;
 CCamera camera;   //カメラ制御クラス
 CCamera *cp;      //カメラ制御クラス(スレッド用)
 int CameraNumber;  //使用カメラ番号
@@ -91,6 +92,7 @@ BEGIN_MESSAGE_MAP(CQueryByMouseDlg, CDialog)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_MESSAGE(WM_JULIUS, OnRecoEvent)
 	//}}AFX_MSG_MAP
 	ON_WM_LBUTTONDOWN()
 	ON_BN_CLICKED(IDC_OFFLINE, &CQueryByMouseDlg::OnBnClickedOffline)
@@ -200,14 +202,107 @@ static UINT AFX_CDECL ThreadRefHuman(LPVOID pParam)
 		AfxBeginThread(ThreadSeek,&s,THREAD_PRIORITY_BELOW_NORMAL);
 	return 0;
 }
+int CQueryByMouseDlg::initJulius()
+{
+	Set_grammar("start");
+	return 0;
+}
 
+bool CQueryByMouseDlg::Set_grammar(char *in)
+{
+	bool ret;
+	if(!strcmp(in,"ans")){
+		//DispJulianDic("ANS");
+		//DeclareAndDo(hr = g_cpCmdGrammar->LoadCmdFromFile(L"./xml_folder/ANS.xml",SPLO_STATIC));
+		ret = julius.initialize("./grammar/ans.jconf");
+		if (ret) julius.startProcess(this->m_hWnd);
+	}
+	else if(!strcmp(in,"start")){
+		//DispJulianDic("START");
+		//DeclareAndDo(hr = g_cpCmdGrammar->LoadCmdFromFile(L"./xml_folder/blank.xml",SPLO_STATIC));
+		ret = julius.initialize("./grammar/start.jconf");
+		if (ret) julius.startProcess(this->m_hWnd);
+	}
+	else if(!strcmp(in,"thanks")){  
+		//DispJulianDic("THANKS");
+		//DeclareAndDo(hr = g_cpCmdGrammar->LoadCmdFromFile(L"./xml_folder/THANKS.xml",SPLO_STATIC));
+		ret = julius.initialize("./grammar/thanks.jconf");
+		if (ret) julius.startProcess(this->m_hWnd);
 
+	}
+	else if(!strcmp(in,"time")){
+		//DispJulianDic("HOUR");
+		//DeclareAndDo(hr = g_cpCmdGrammar->LoadCmdFromFile(L"./xml_folder/START8.xml",SPLO_STATIC));
+		ret = julius.initialize("./grammar/hour.jconf");
+		if (ret) julius.startProcess(this->m_hWnd);
+	}
+
+	if (!ret) SetDlgItemText(IDC_EDIT_CHECK,"Error while loading Julius engine");
+	return ret;
+
+	//辞書設定後の初期化
+	//DeclareAndDo(hr = g_cpCmdGrammar->SetRuleState(NULL, NULL, SPRS_ACTIVE ));
+}
+LRESULT CQueryByMouseDlg::OnRecoEvent(WPARAM wParam, LPARAM lParam)
+{
+	int wmId, wmEvent;
+	//PAINTSTRUCT ps;
+	//HDC hdc;
+	int jEventId;
+	int jResultId;
+	static char conffile[1024];
+
+	jEventId = LOWORD(wParam);
+	switch (jEventId) {
+		case JEVENT_ENGINE_ACTIVE:	SetDlgItemText(IDC_EDIT_CHECK,"Engine Active");	break;
+		case JEVENT_ENGINE_INACTIVE:SetDlgItemText(IDC_EDIT_CHECK,"Engine Inactive"); break;
+		case JEVENT_ENGINE_PAUSE:	SetDlgItemText(IDC_EDIT_CHECK,"Engine Pause"); break;
+		case JEVENT_ENGINE_RESUME:	SetDlgItemText(IDC_EDIT_CHECK,"Engine Resume"); break;
+		case JEVENT_AUDIO_READY:	SetDlgItemText(IDC_EDIT_CHECK,"Audio Input Ready"); break;
+		case JEVENT_AUDIO_BEGIN:	SetDlgItemText(IDC_EDIT_CHECK,"Audio Input Begin"); break;
+		case JEVENT_AUDIO_END:		SetDlgItemText(IDC_EDIT_CHECK,"Audio Input End"); break;
+		case JEVENT_RECOG_BEGIN:	SetDlgItemText(IDC_EDIT_CHECK,"Recognition Begin"); break;
+		case JEVENT_RECOG_END:		SetDlgItemText(IDC_EDIT_CHECK,"Recognition End"); break;
+		case JEVENT_RECOG_FRAME:	/*SetDlgItemText(IDC_EDIT_CHECK,"Recognition Frame"); */break;
+		case JEVENT_RESULT_FRAME:	/*SetDlgItemText(IDC_EDIT_CHECK,"Result Frame");  */break;
+		case JEVENT_RESULT_PASS1:	SetDlgItemText(IDC_EDIT_CHECK,"Result Pass1"); break;
+		case JEVENT_RESULT_FINAL:	SetDlgItemText(IDC_EDIT_CHECK,"Result Final");
+			jResultId = HIWORD(wParam);
+			if (jResultId != 0) {
+				SetDlgItemText(IDC_EDIT_CHECK,"No result");
+			} else {
+				SetDlgItemText(IDC_EDIT_CHECK, "Result");
+				//DispUsermsg(std::string((wchar_t *)lParam));
+				//((CEdit*)GetDlgItem(IDC_EDIT_USER))->ReplaceSel((LPCWSTR)lParam);
+				SetDlgItemTextW(m_hWnd, IDC_EDIT_USER, (LPCWSTR)lParam);
+				GetNbestText();
+				ControlDialog();
+			}
+			break;
+		case JEVENT_GRAM_UPDATE:	SetDlgItemText(IDC_EDIT_CHECK,"Grammar changed"); break;
+		default:					SetDlgItemText(IDC_EDIT_CHECK,"! unknown event"); break;
+	}
+	//InvalidateRect(hWnd, NULL, TRUE);
+
+	return true;
+}
+
+void CQueryByMouseDlg::GetNbestText()
+{	
+
+	char * s = julius.getWordInfo();
+	st[0].ElementsNum = julius.getSeqNum();
+	for (int  i = 0; i <st[0].ElementsNum; i++ ){
+		strcpy(Word[i],s+i*256);	
+	}
+	record++;
+}
 // CQueryByMouseDlg メッセージ ハンドラ
 
 BOOL CQueryByMouseDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-
+	initJulius();
 	// "バージョン情報..." メニューをシステム メニューに追加します。
 
 	// IDM_ABOUTBOX は、システム コマンドの範囲内になければなりません。
@@ -392,19 +487,19 @@ int CQueryByMouseDlg::GessTask()
 	bool hito=false;
 	bool time=false;
 
-	for(nbest = 0 ; nbest < MAX_CAND_NUM ; nbest++){//候補数だけ繰り返す
+	//for(nbest = 0 ; nbest < MAX_CAND_NUM ; nbest++){//候補数だけ繰り返す
 		for(int i = 0; i < st[nbest].ElementsNum ;i++){
 			if(st[nbest].CategoryID[i]==5){  //「いつ」が見つかれば
 				time = true;
 			}else if(st[nbest].CategoryID[i]==6){ //「誰」が見つかれば
 				hito = true;
-			}else if(st[nbest].CategoryID[i]==7){ //放置物の問い合わせ
+			}else if(st[nbest].CategoryID[i] >= 7 && st[nbest].CategoryID[i] <= 10){ //放置物の問い合わせ
 				gesstask = 4;
-			}else if(st[nbest].CategoryID[i]==8){ //紛失物の問い合わせ
+			}else if(st[nbest].CategoryID[i]==11 || st[nbest].CategoryID[i]==12){ //紛失物の問い合わせ
 				gesstask = 7;
 			}
 		}
-	}
+	//}
 
 	//タスクの決定
 	if(hito==true)	gesstask+=1;
@@ -528,12 +623,14 @@ int CQueryByMouseDlg::IntoSlot(CQuerySlot &Q)
 	//++++++++++++++++++++++++++++++++++++++++++
 	int count = 0;
 	if(Q.GetArea()==0 && system.GetArea()!=true){ //場所がまだ確定していない
-		while(count < 10){
-			AreaFlag=ReferenceObject();
-			if (AreaFlag) count++;
+		for (int mi = 0; mi < 10; mi++){
+			if (	ReferenceObject())
+				count++;
 			Sleep(10);
 		}
-		if(count >= 10){ //場所が分かったとき、スロット更新
+		
+		if(count >= 6){ //場所が分かったとき、スロット更新
+			AreaFlag = true;
 			Q.SetArea_xmin(xmin[0]); Q.SetArea_xmax(xmax[0]);
 			Q.SetArea_ymin(ymin[0]); Q.SetArea_ymax(ymax[0]);
 		//	Q.SetArea_xmin(pointx-15); Q.SetArea_xmax(pointx+15);
@@ -594,11 +691,11 @@ int CQueryByMouseDlg::SplitResult()
 	st[0].WordID=(int*)calloc(MAX_ELEMENT_NUM,sizeof(int));
 	st[0].ElementConf=(float*)calloc(MAX_ELEMENT_NUM,sizeof(float));
 	st[0].ElementText=(char**)balloc(MAX_ELEMENT_NUM,MAX_CHAR_NUM_DIC,sizeof(char));
-
-	for(nbest = 0 ; nbest < MAX_CAND_NUM ; nbest++){//候補数だけ繰り返す
+	nbest = 0;
+	//for(nbest = 0 ; nbest < MAX_CAND_NUM ; nbest++){//候補数だけ繰り返す
 		int k = 0;
-		for(int j=0; j<st[nbest].ElementsNum; j++){
-			if(SplitWord(Word[j], '#', '$', WordText, CategoryID , WordID)){
+		for(int j=1; j<st[nbest].ElementsNum-1; j++){
+			if(SplitWord(Word[j], '+', '-', WordText, CategoryID , WordID)){
 				st[nbest].CategoryID[k] = atoi(CategoryID);
 				st[nbest].WordID[k] = atoi(WordID);
 				strcpy(st[nbest].ElementText[k], WordText);
@@ -619,7 +716,7 @@ int CQueryByMouseDlg::SplitResult()
 			}
 		}
 		st[nbest].ElementsNum = k;
-	}
+//	}
 	return 0;
 }
 
@@ -685,10 +782,11 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 	//タスクが決まっていない
 	if(taskflag==0){
 		DispSystemmsg("もう一度発話してください");
-		//AquesTalkDa_PlaySync("もういちどはつわしてください");
+		AquesTalkDa_PlaySync("もういちどはつわしてください");
 	}
 
 	else{ //タスクが決まっている
+
 
 		//誤認識特定モード(後でもう少しちゃんとまとめる)
 		if(Q.GetCorNum()==1){ //解釈ミス
@@ -804,7 +902,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 			}
 			if(Q.GetTimeOK()!=true){
 				DispSystemmsg("午後５時でよろしいですか？");
-				//AquesTalkDa_PlaySync("ごご,<NUM VAL=3 COUNTER=時>じで/よろし'いですか？");
+				AquesTalkDa_PlaySync("ごご,<NUM VAL=3 COUNTER=時>じで/よろし'いですか？");
 				system.SetTime();
 			}
 		}
@@ -854,7 +952,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 			//時間OKまだ
 			if(Q.GetTimeNum()!=0 && Q.GetTimeOK()!=true){
 				DispSystemmsg("午後５時でよろしいですか？");
-				//AquesTalkDa_PlaySync("ごご,<NUM VAL=3 COUNTER=時>じで/よろし'いですか？");
+				AquesTalkDa_PlaySync("ごご,<NUM VAL=3 COUNTER=時>じで/よろし'いですか？");
 				system.SetTime();
 			}
 
@@ -865,7 +963,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 				// 結果を出力
 				//++++++++++++++++++++++++
 				DispSystemmsg("この人じゃないですか？");
-				//AquesTalkDa_PlaySync("このひとじゃないですか");
+				AquesTalkDa_PlaySync("このひとじゃないですか");
 				dummy.ShowWindow(SW_SHOW);
 				dummy.ShowResult(Q.GetObjectNum());   //画像出力
 				system.SetResult();
@@ -880,7 +978,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 					//+++++++++++++++++++++
 					DispSystemmsg("位置を指差してください");
 					dummy.ShowWindow(SW_HIDE);
-					//AquesTalkDa_PlaySync("いちをゆびさしてください");
+					AquesTalkDa_PlaySync("いちをゆびさしてください");
 					//system.SetArea();
 				}
 
@@ -893,12 +991,12 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 						//if(system.GetArea()==false){  //場所の確認をしてない
 						if(Q.GetAreaOK()==false){
 							DispSystemmsg("場所はここであっていますか?");
-							//AquesTalkDa_PlaySync("ばしょはここであっていますか");
+							AquesTalkDa_PlaySync("ばしょはここであっていますか");
 							dummy.ShowWindow(SW_SHOW);
 							dummy.DispAreaAlt(cp->getImage(), Q.GetArea_xmin(),Q.GetArea_xmax(),Q.GetArea_ymin(),Q.GetArea_ymax());
 							
 							system.SetArea();
-							//Set_xml("ans");
+							//Set_grammar("ans");
 						}else{  //場所の確認をした
 							//++++++++++++++++++++//
 							//   誤認識の発見     //
@@ -958,9 +1056,9 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 							//DispSystemmsg("3時前後を探します\r\n");
 						//}
 						DispSystemmsg("これのことですか？");
-						//AquesTalkDa_PlaySync("これのことですか");
+						AquesTalkDa_PlaySync("これのことですか");
 						system.SetObject();
-						//Set_xml("ans");
+						//Set_grammar("ans");
 						}
 						else{
 							//候補出力
@@ -989,9 +1087,9 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 						dummy.ShowWindow(SW_SHOW);
 						dummy.indicate(Q.GetObjectNum(),taskflag);   //画像出力
 						DispSystemmsg("これのことですか？");
-						//AquesTalkDa_PlaySync("これのことですか");
+						AquesTalkDa_PlaySync("これのことですか");
 						system.SetObject();
-						//Set_xml("ans");
+					//	Set_grammar("ans");
 						}
 					}
 
@@ -1026,20 +1124,20 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 						DispSystemmsg("候補がたくさんあります。");
 						DispSystemmsg("何時ぐらいまであったか知ってますか？");
 						DispSystemmsg("それは何時にありましたか？");
-						//AquesTalkDa_PlaySync("それはなんじにありましたか");
+						AquesTalkDa_PlaySync("それはなんじにありましたか");
 						system.SetTime();
-						//Set_xml("time");
+						//Set_grammar("time");
 					}
 					if(Q.GetCorNum()==1 && Q.GetTimeNum()==0){ //誤認識特定モードで、時間Not確定時
 						if(taskflag==4){ //放置物
 							DispSystemmsg("それが無かった時間は分かりますか？");
-							//AquesTalkDa_PlaySync("それはなんじにありましたか");
+							AquesTalkDa_PlaySync("それはなんじにありましたか");
 						}else if(taskflag==7){ //紛失物
 							DispSystemmsg("いつ頃それはありましたか？");
-							//AquesTalkDa_PlaySync("それはなんじにありましたか");
+							AquesTalkDa_PlaySync("それはなんじにありましたか");
 						}
 						system.SetTime();
-						//Set_xml("time");
+						//Set_grammar("time");
 					}
 				}
 			}
@@ -1056,7 +1154,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 		system.InitContents();
 		user.InitContents();
 		//DispTimemsg();             //時刻の更新
-		//Set_xml("blank");
+		//Set_grammar("start");
 		//SetDlgItemText(IDC_EDIT2, "");
 		SetDlgItemText(IDC_EDIT_USER, ""); 
 		SetDlgItemText(IDC_EDIT_SYSTEM, "");
