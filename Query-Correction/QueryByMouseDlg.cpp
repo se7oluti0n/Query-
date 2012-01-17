@@ -72,6 +72,7 @@ END_MESSAGE_MAP()
 
 
 
+
 CQueryByMouseDlg::CQueryByMouseDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CQueryByMouseDlg::IDD, pParent)
 	, m_xvTime(0)
@@ -433,7 +434,7 @@ int CQueryByMouseDlg::IntoSlot(CQuerySlot &Q)
 
 	if(taskflag==0)	return 0;
 
-	//感謝の言葉なら終了(初期化)
+	//感謝の言葉なら終了(初期化) 
 	for(int i=0;i<st[nbest].ElementsNum;i++){
 		if(st[nbest].CategoryID[i]==13){
 			endflag=true;
@@ -443,9 +444,9 @@ int CQueryByMouseDlg::IntoSlot(CQuerySlot &Q)
 	//時間
 	for(int i=0;i<st[nbest].ElementsNum;i++){
 		if(st[nbest].CategoryID[i]==19){
-			//Q.SetTime(st[nbest].WordID[i]+12);
-			Q.SetTime(12);
-			//return 0;
+			Q.SetTime(st[nbest].WordID[i]+12);
+			//Q.SetTime(12);
+			return 0;
 		}
 	}
 
@@ -487,7 +488,7 @@ int CQueryByMouseDlg::IntoSlot(CQuerySlot &Q)
 			if(system.GetTime()){   //時間確認
 				Q.SetTimeOK(true);
 				if(Q.GetCorNum()!=1){ //普通の検索なら時間で絞る
-					int num=Database.NarrowByTime(15);
+					int num=Database.NarrowByTime(Q.GetTimeNum());
 					Q.SetCandObjNum(num);
 					Q.SetObjectNum(Database.Give_Value());
 				}
@@ -894,7 +895,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 							DispSystemmsg("場所はここであっていますか?");
 							//AquesTalkDa_PlaySync("ばしょはここであっていますか");
 							dummy.ShowWindow(SW_SHOW);
-							dummy.DispArea(Q.GetArea_xmin(),Q.GetArea_xmax(),Q.GetArea_ymin(),Q.GetArea_ymax());
+							dummy.DispAreaAlt(cp->getImage(), Q.GetArea_xmin(),Q.GetArea_xmax(),Q.GetArea_ymin(),Q.GetArea_ymax());
 							
 							system.SetArea();
 							//Set_xml("ans");
@@ -903,7 +904,7 @@ void CQueryByMouseDlg::GenerateSystemMsg(CQuerySlot &Q)
 							//   誤認識の発見     //
 							//++++++++++++++++++++//
 							dummy.ShowWindow(SW_HIDE);
-							//DispSystemmsg("誤認識発見！");
+							DispSystemmsg("誤認識発見！");
 							Q.SetCorNum(1);  //システムの誤解釈を探すフラグ
 							//未検出シーン検索を始める
 							s.Set_Area(Q.GetArea_xmin(),Q.GetArea_xmax(),Q.GetArea_ymin(),Q.GetArea_ymax());
@@ -1204,15 +1205,17 @@ void CQueryByMouseDlg::OnBnClickedThanks()
 //時間
 void CQueryByMouseDlg::OnBnClickedTime()
 {
-	/*CString str;
+	CString str;
 	UpdateData(TRUE);
 	m_xcTime.GetLBText(m_xvTime,str);
-	MessageBox(str);*/
+	//MessageBox(str);
+	str += "時";
 
 	//とりあえず、時間固定で
-	DispUsermsg("5時ぐらい");
+	DispUsermsg((LPCSTR)(str + "ぐらい"));
 	st[0].ElementsNum = 1;
-	sprintf_s(Word[0],"%s","5時#19$003,");
+	str += "#19$003,";
+	sprintf_s(Word[0],str);
 
 	record++;
 	ControlDialog();

@@ -1,17 +1,16 @@
 #pragma once
 #include "afxwin.h"
 #include "bmp.h"
+//#include "network.h"
+// myOutput ダイアログ
 
-
-// Output ダイアログ
-
-class Output : public CDialog
+class myOutput : public CDialog
 {
-	DECLARE_DYNAMIC(Output)
+	DECLARE_DYNAMIC(myOutput)
 
 public:
-	Output(CWnd* pParent = NULL);   // 標準コンストラクタ
-	virtual ~Output();
+	myOutput(CWnd* pParent = NULL);   // 標準コンストラクタ
+	virtual ~myOutput();
 
 // ダイアログ データ
 	enum { IDD = IDD_OUTPUT };
@@ -26,6 +25,7 @@ public:
 	bool ReadBitmap(CString file);
 
 	void DispArea(int xmin,int xmax,int ymin,int ymax);
+	void DispAreaAlt(bmp *input, int xmin,int xmax,int ymin,int ymax);
 
 	void ShowResult(int frame);
 	void ShowUndetectioScene(int folder,int frame);

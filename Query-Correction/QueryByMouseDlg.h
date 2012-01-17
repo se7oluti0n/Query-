@@ -23,7 +23,7 @@ typedef struct _Sentence{
 	int* WordID;              //単語ID
 	float* ElementConf;       //形態素の信頼度
 	char** ElementText;       //形態素のテキスト
-} Sentence;
+} mySentence;
 
 // CQueryByMouseDlg ダイアログ
 class CQueryByMouseDlg : public CDialog
@@ -44,7 +44,7 @@ private:
 
 	int record;   // 対話の履歴
 	int nbest;    // NbestのN
-	Sentence st[MAX_CAND_NUM];   // 認識結果構造体
+	mySentence st[MAX_CAND_NUM];   // 認識結果構造体
 	char Text[MY_MAX_ALTERNATES][MAX_ELEMENT_NUM][256];//認識結果単語列
 	char Word[MAX_ELEMENT_NUM][256];  // 第1候補の単語列
 	int taskflag; // 0は未検出、1は放置物、2は紛失物、3は問い合わせ(放置か紛失かは判断できていない)
@@ -62,7 +62,7 @@ private:
 	int xmin[1],xmax[1],ymin[1],ymax[1];  //指差す領域(検索領域)
 	
 	Cquery Database;   //検索を行う
-	Output dummy;      //出力用ダイアログ
+	myOutput dummy;      //出力用ダイアログ
 
 	//Multi_Disp SceneOut;  //誤認識時のシーン出力用ダイアログ
 
@@ -76,6 +76,7 @@ private:
 	////++++++++++++++++++++++++++++++++++++++++++++++
 
 public:
+
 	//表示関係+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	void ImageOut(unsigned char *pix);   //リアルタイム画像出力
 	void Init(); //色々初期化

@@ -18,6 +18,13 @@
 
 using namespace cv;
 
+CCamera::~CCamera()
+{
+	input.release();
+	char quitSignal[] = "Quit";
+	send(sock_for_finger, quitSignal, strlen(quitSignal), 0 );
+	closesocket(sock_for_finger);//ソケットクローズ
+}
 //--------------------------------------------------
 // Name     : SendCommand(int camera,int task)
 // Author   : Kazuhiro MAKI (CV-lab.)
@@ -188,6 +195,7 @@ int CCamera::SendCommand(int camera,int task)
 			////RGBデータの取得(幅と高さも)
 			//jd.GetRGBData(&nR,&nG,&nB,Width,Height);
 
+			
 
 			cv::Mat decodedImg = cv::imdecode(cv::Mat(1, nTotalRcv, CV_8UC1, totalBuf), 1);
 			recvFinger();
@@ -208,6 +216,7 @@ int CCamera::SendCommand(int camera,int task)
 
 
 			//画像データ(RGB)の領域を確保(1番最初とカメラの向きを変えるとき)
+			input.release();
 			input.init();
 
 			//RGBのデータを1つの配列に(上下を合わせる)
@@ -240,7 +249,7 @@ int CCamera::SendCommand(int camera,int task)
 			pParent->ImageOut(&input.B(0,0));
 
 			frame++;
-			input.release();
+			
 
 			//フレームの初期化(1時間)
 			/*if(frame==25*60*60){
@@ -259,10 +268,8 @@ int CCamera::SendCommand(int camera,int task)
 		}//for
 	}//if
 
+	
 	closesocket(s);  
-	char quitSignal[] = "Quit";
-	send(sock_for_finger, quitSignal, strlen(quitSignal), 0 );
-	closesocket(sock_for_finger);//ソケットクローズ
 	WSACleanup();    //WinSockをクリーンアップ
 	//getch();
 

@@ -31,6 +31,7 @@ private:
 
 public:
 	
+	~CCamera();
 	int SendCommand(int camera,int task);  //文字列を送る
 	int OffLine();                         //オフライン用BMPファイルの読み込み
 
@@ -45,5 +46,6 @@ public:
 	//bool get_finger(int xmin[],int ymin[],int xmax[],int ymax[]); //指さしている領域を返す
 	int imageKinect();
 	void recvFinger();
+	bmp * getImage(){ return &input;}
 
 };

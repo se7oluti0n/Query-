@@ -1,0 +1,31 @@
+スロット
+
+int CandObjNum;   //物体の候補数
+CFlag Object;     //物体番号(物体が検知されたフレーム番号)、確認が取れたか
+CFlag time;       //時間
+CFlag area;       //場所
+CFlag correction; //訂正モード
+
+○再解釈が必要な状況
+・correction > 0
+　その時の物体番号はObject の Value に入っている
+
+interpretationクラス
+static layer lay;
+static bmp output,output_val;  //一番上から見た色づけした画像、輝度画像
+static bmp object_img[10];     //各レイヤ(物体)の輝度画像
+static bmp mask_img[10];       //各レイヤ(物体)を色付けした画像
+
+入力とobject_imgを比較してマッチング
+
+
+lay_num に レイヤ数
+
+
+FILE *fp;
+
+fopen_s(&fp,"","a");
+fclose(fl);
+
+================================================
+まず、追加する状況の時のレイヤを実現
